@@ -37,7 +37,6 @@ typedef struct Node_ {
   void * data;
   struct Node_ * next;
   struct Node_ * prev;
-  int indicator;
     
 } Node;
 
@@ -55,7 +54,6 @@ struct SortedList
     struct Node_ * head;
     CompareFuncT cf;
     DestructFuncT df;
-    int length;
 };
 typedef struct SortedList* SortedListPtr;
 

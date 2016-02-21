@@ -11,6 +11,7 @@ Node* createNode(void *data, Node *nxt, Node *prv) {
         printf("Error! Failed to allocate memory for a new node.\n");
         return NULL;
     }
+    
     node->data = data;                                                  //assign the data to the node
     node->next = nxt;                                                   //set the node's next node to nxt
     node->prev = prv;                                                   //set the previous node's node to prv
@@ -21,7 +22,7 @@ Node* createNode(void *data, Node *nxt, Node *prv) {
 //Creates a sorted list and returns a pointer to it
 SortedListPtr SLCreate(CompareFuncT cf, DestructFuncT df) {
     
-    SortedListPtr sl = malloc(sizeof(struct SortedList));
+    SortedListPtr sl = malloc(sizeof(struct SortedList));               //allocate memory for the sorted list pointer struct
     
     //check to see if malloc was a success
     if (sl == NULL) {
@@ -32,11 +33,11 @@ SortedListPtr SLCreate(CompareFuncT cf, DestructFuncT df) {
     sl->cf = cf;                                                        //assign the sorted list's compare function to the one passed
     sl->df = df;                                                        //assign the sorted list's destruct function to the one passed
     sl->head = NULL;                                                    //set the head of the list to null
-    sl->length = 0;
     
     return sl;
 }
 
+//Destroys a sorted list pointer
 void SLDestroy(SortedListPtr list) {
     
     free(list);
@@ -48,7 +49,7 @@ void SLDestroy(SortedListPtr list) {
 //allocates memory for a new sorted list iterator
 SortedListIteratorPtr SLCreateIterator(SortedListPtr list) {
     
-    SortedListIteratorPtr iterator = malloc(sizeof(SortedListIteratorPtr));
+    SortedListIteratorPtr iterator = malloc(sizeof(SortedListIteratorPtr));         //allocates memory for a sorted list iterator
     
     //check to see if the memory was allocated successfully, if not, print an error and return null
     if (iterator == NULL) {
@@ -56,7 +57,7 @@ SortedListIteratorPtr SLCreateIterator(SortedListPtr list) {
         return NULL;
     }
     
-    iterator->node = list->head;
+    iterator->node = list->head;                                                    //sets the iterator node to the head of the sorted list
     
     return iterator;
 }
@@ -77,16 +78,14 @@ int SLInsert(SortedListPtr  list, void *newObj) {
     
     if (list->head == NULL) {                                                   //data list is empty
         list->head = createNode(newObj, NULL, NULL);                            //create new node with the data
-        ++list->length;
         return 1;
     } else {
         Node *currNode = list->head;                                            //create a temporary node to traverse the list
         x = list->cf(currNode->data,newObj);                                    //compare the head node data to the new data
-        if (x == -1 || x == 0) {                                                          //second data value is larger
+        if (x == -1 || x == 0) {                                                //second data value is larger
             Node *node = createNode(newObj, currNode, NULL);                    //create new node with the new data value
             currNode->prev = node;
             list->head = node;                                                  //set the head of the list to the new node
-            ++list->length;            
             return 1;
         }
         
@@ -97,7 +96,11 @@ int SLInsert(SortedListPtr  list, void *newObj) {
             if (x == -1 && left == 1) {                                         //second value is larger than current value, but smaller than previous value
                 break;                                          
             } else if (x == 0) {                                                //value already exists
-                return 0;
+                break;
+            } else if (currNode->next == NULL) {
+                Node *node = createNode(newObj, NULL, currNode);               //this data value is the smallest in the list so it goes at the end
+                currNode->next = node;                                         //set the current node's next value point to the new node
+                return 1;
             }
             
             //otherwise, keep traversing the list
@@ -106,12 +109,9 @@ int SLInsert(SortedListPtr  list, void *newObj) {
             currNode = currNode->next;
         }
         
-        Node *node = createNode(newObj, currNode, temp);                        //this data value is the smallest in the list so it goes at the end
-        if (currNode != NULL) {                                                 //if currNode is not equal to null, then set it's previous node to the new node
-            currNode->prev = node;            
-        }
+        Node *node = createNode(newObj, currNode, temp);                        //create a new node with temp being the previous node and currNode being the next node
         temp->next = node;                                                      //set the previous node's next value equal to the new node
-        ++list->length;
+
         return 1;
     }
      
@@ -131,58 +131,53 @@ int SLRemove(SortedListPtr list, void *newObj) {
         node = list->head->next;                        //get the next node in the list after the head and store it in node
         list->df(list->head);                           //destroy the current list head
         list->head = node;                              //set the new list head to node (next element in list)
-        --list->length;
         return 1;
     }
     
     node = list->head;                                  //otherwise set node equal to the head of the list
     
-    
+    Node *prv = NULL;
     
     //search the list until you reach the end or find your target value
     do {
-        
+        prv = node;
         node = node->next;
         if (node == NULL) {
-            return 0;
+            return 0;                                   //reached end of the list without finding our target
         }
-        comp = list->cf(node->data, newObj);
+        comp = list->cf(node->data, newObj);            //compare current node data with our target value
 
     } while (comp != 0);
     
-    Node * temp = node->prev;                           //store the previous node in a temp node
-    temp->next = node->next;                            //set the temp node's next node equal to the current node's next node
-    if (node->next != NULL) {                           //if current node is not equal to null
-        node->next->prev = temp;                        //assign the next node's previous node value equal to the temp node
+    prv->next = node->next;                             //set the previous node's next pointer point to the current node's next node
+    if (node->next != NULL) {                           //if the next node is not a null
+        node->next->prev = prv;                         //set the next node's previous pointer point to our previous node prv
     }
     
     list->df(node);                                     //destroy our target node 
-    --list->length;
     return 1;
     
 }
 
-
+//Gets the next data item in our sorted list
 void * SLNextItem(SortedListIteratorPtr iter) {
     
-    void * item = NULL;
+    void * item = NULL;                                 //create a void pointer variable to store our target data
     
-    if (iter->node == NULL) {
+    if (iter->node == NULL) {                           //if the iterator's node points to null, then we reached the end of the list
         
         return item;
         
     }
-    
-    iter->node = iter->node->next;    
-    Node * currNode = iter->node;
-    item = currNode->data;
+    item = iter->node->data;                            //our data item is the iterator's current node's data
+    iter->node = iter->node->next;                      //have our iterator point to the next node in the list
     
     return item;
 }
 
 void * SLGetItem(SortedListIteratorPtr iter) {
     
-    void * item = SLNextItem(iter);
+    void * item = SLNextItem(iter);                     //call the next item in the sorted list and return that value
     
     return item;
 }
